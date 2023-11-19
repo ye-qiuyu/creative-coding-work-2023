@@ -1,11 +1,9 @@
-// 实时交互的星空（鼠标移动时连接星星，点击时重置星星和背景颜色，星星微微闪烁）
-
-int numberOfStars = 100; // 星星的数量
-float[][] stars = new float[numberOfStars][2]; // 存储星星位置的数组
-float interactionRadius = 100; // 交互半径
-color[] colors = {color(18, 32, 77), color(48, 25, 52), color(78, 10, 20)}; // 背景颜色选项
-color currentColor; // 当前背景颜色
-color lastColor; // 上一个背景颜色
+int numberOfStars = 100; 
+float[][] stars = new float[numberOfStars][2]; 
+float interactionRadius = 100;
+color[] colors = {color(18, 32, 77), color(48, 25, 52), color(78, 10, 20)}; 
+color currentColor; 
+color lastColor; 
 
 void setup() {
   size(800, 600);
@@ -29,7 +27,7 @@ void initializeStars() {
 
 void drawStars() {
   for (int i = 0; i < numberOfStars; i++) {
-    float starBrightness = random(150, 255); // 随机亮度，使星星闪烁
+    float starBrightness = random(150, 255);
     stroke(starBrightness);
     point(stars[i][0], stars[i][1]);
   }
