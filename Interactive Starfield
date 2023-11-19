@@ -1,1 +1,60 @@
-#test
+// 实时交互的星空（鼠标移动时连接星星，点击时重置星星和背景颜色，星星微微闪烁）
+
+int numberOfStars = 100; // 星星的数量
+float[][] stars = new float[numberOfStars][2]; // 存储星星位置的数组
+float interactionRadius = 100; // 交互半径
+color[] colors = {color(18, 32, 77), color(48, 25, 52), color(78, 10, 20)}; // 背景颜色选项
+color currentColor; // 当前背景颜色
+color lastColor; // 上一个背景颜色
+
+void setup() {
+  size(800, 600);
+  currentColor = colors[int(random(colors.length))];
+  lastColor = currentColor;
+  initializeStars();
+}
+
+void draw() {
+  background(currentColor);
+  drawStars();
+  connectNearbyStars(mouseX, mouseY);
+}
+
+void initializeStars() {
+  for (int i = 0; i < numberOfStars; i++) {
+    stars[i][0] = random(width);
+    stars[i][1] = random(height);
+  }
+}
+
+void drawStars() {
+  for (int i = 0; i < numberOfStars; i++) {
+    float starBrightness = random(150, 255); // 随机亮度，使星星闪烁
+    stroke(starBrightness);
+    point(stars[i][0], stars[i][1]);
+  }
+}
+
+void connectNearbyStars(float x, float y) {
+  for (int i = 0; i < numberOfStars; i++) {
+    for (int j = i + 1; j < numberOfStars; j++) {
+      float distance = dist(stars[i][0], stars[i][1], stars[j][0], stars[j][1]);
+      if (distance < interactionRadius) {
+        if (dist(x, y, stars[i][0], stars[i][1]) < interactionRadius && dist(x, y, stars[j][0], stars[j][1]) < interactionRadius) {
+          stroke(255, 255, 255, 150);
+          line(stars[i][0], stars[i][1], stars[j][0], stars[j][1]);
+        }
+      }
+    }
+  }
+}
+
+void mousePressed() {
+  do {
+    currentColor = colors[int(random(colors.length))];
+  } while (currentColor == lastColor);
+  lastColor = currentColor;
+  
+  initializeStars();
+}
+
