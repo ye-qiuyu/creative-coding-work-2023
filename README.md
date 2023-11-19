@@ -1,3 +1,2 @@
 # creative-coding-work-2023
-*test*
-**branches**
+for creative-coding-lesson2023
