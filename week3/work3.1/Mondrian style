@@ -1,1 +1,46 @@
-123
+int cols, rows;
+int gridSize = 80; // The size of the grid cells
+color[] colors = {#FFFFFF, #FF0000, #0000FF, #FFFF00}; // Array of colors
+
+void setup() {
+  size(640, 640); // Size of the window
+  cols = width / gridSize; // Calculate the number of columns
+  rows = height / gridSize; // Calculate the number of rows
+  drawPattern(); // Draw the initial pattern
+}
+
+void draw() {
+  // Intentionally left blank
+}
+
+void drawPattern() {
+  background(255); // Clear the screen with a white background
+  stroke(100,100,100); // Set line color to black
+  strokeWeight(1); // Set line thickness
+
+  // Loop over the grid
+  for (int i = 0; i < cols; i++) {
+    for (int j = 0; j < rows; j++) {
+      if (random(1) < 0.2) { // 20% chance to fill a cell with color
+        fill(colors[int(random(4))]); // Select a random color
+        ellipseMode(CORNER); // Set mode to draw ellipse from the corner
+        ellipse(i * gridSize, j * gridSize, gridSize, gridSize); // Draw the ellipse
+      }
+    }
+  }
+  
+  // Draw the vertical lines
+  for (int i = 1; i < cols; i++) {
+    line(i * gridSize, 0, i * gridSize, height);
+  }
+  
+  // Draw the horizontal lines
+  for (int j = 1; j < rows; j++) {
+    line(0, j * gridSize, width, j * gridSize);
+  }
+}
+
+void mousePressed() {
+  // Clear the screen and redraw the pattern when the mouse is pressed
+  drawPattern();
+}
