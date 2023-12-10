@@ -1,0 +1,119 @@
+import ddf.minim.*;
+import ddf.minim.analysis.*;
+
+String selectedFile;
+PController pc;
+PImage origionImg;
+Minim minim;
+AudioInput in;
+float lastLevel = 0;
+
+void setup() {
+  size(1280, 720, P2D);
+  selectInput("Select a file to process:", "fileSelected");
+  minim = new Minim(this);
+  in = minim.getLineIn(Minim.MONO, 512);
+  pc = new PController();
+}
+
+void draw() {
+  background(0);
+  if (origionImg != null) {
+    pc.update(origionImg);
+    pc.display();
+  }
+
+  float level = in.left.level();
+  pc.adjustParticles(level);
+  lastLevel = level;
+}
+
+void fileSelected(File selection) {
+  if (selection == null) {
+    println("Window was closed or the user hit cancel.");
+  } else {
+    selectedFile = selection.getAbsolutePath();
+    origionImg = loadImage(selectedFile);
+    origionImg.resize(width, height);
+  }
+}
+
+class PController {
+  ArrayList<PartiDot> partiDots;
+
+  PController() {
+    partiDots = new ArrayList<PartiDot>();
+    for (int x = 0; x < width; x += 10) {
+      for (int y = 0; y < height; y += 10) {
+        partiDots.add(new PartiDot(new PVector(x, y)));
+      }
+    }
+  }
+
+  void update(PImage pattern) {
+    pattern.loadPixels();
+    for (PartiDot dot : partiDots) {
+      dot.update(pattern);
+    }
+  }
+
+  void display() {
+    for (PartiDot dot : partiDots) {
+      dot.display();
+    }
+  }
+
+  void adjustParticles(float level) {
+    for (PartiDot dot : partiDots) {
+      dot.adjustSize(level);
+    }
+  }
+}
+
+class PartiDot {
+  PVector loc;
+  float r, baseR;
+
+  PartiDot(PVector initLoc) {
+    loc = initLoc;
+    baseR = 5;
+    r = baseR;
+  }
+
+  void update(PImage pattern) {
+    int index = floor(loc.x) + floor(loc.y) * pattern.width;
+    color c = pattern.pixels[index];
+    fill(c);
+    noStroke();
+    rectMode(CENTER);
+
+    // 根据颜色变化密集程度调整粒子基础大小
+    baseR = calculateParticleSize(pattern, loc, 10);
+    rect(loc.x, loc.y, r, r);
+  }
+
+  void display() {
+    // 显示逻辑已经集成到update()函数中
+  }
+
+  void adjustSize(float level) {
+    // 基于音频输入的粒子大小调整
+    r = baseR * (1 + level * 2); // 基础大小乘以音量级别的影响因子
+  }
+
+  // 计算粒子大小的函数
+  float calculateParticleSize(PImage img, PVector loc, int radius) {
+    float colorVariation = 0;
+    int count = 0;
+    for (int x = PApplet.max(0, floor(loc.x) - radius); x < PApplet.min(img.width, floor(loc.x) + radius); x++) {
+      for (int y = PApplet.max(0, floor(loc.y) - radius); y < PApplet.min(img.height, floor(loc.y) + radius); y++) {
+        int idx = x + y * img.width;
+        colorVariation += brightness(img.pixels[idx]);
+        count++;
+      }
+    }
+
+    colorVariation /= count;
+    return map(colorVariation, 0, 255, 10, 2); // 颜色变化越大，粒子越小
+  }
+}
