@@ -1,1 +1,224 @@
+import controlP5.*;
+import peasy.*;
+import processing.opengl.*;
+
+ControlP5 cp5;
+PeasyCam cam;
+ArrayList<PVector> vertices;
+ArrayList<int[]> faces;
+float heightFactor = 200;
+float radius = 100;
+int radialSections = 36;
+int heightSections = 10;
+float twistAmount = PI;
+boolean export = false;
+
+void setup() {
+  size(800, 800, P3D);
+  cam = new PeasyCam(this, 500);
+  vertices = new ArrayList<PVector>();
+  faces = new ArrayList<int[]>();
+  createUI();
+  generateModel();
+}
+
+void draw() {
+  background(240);
+  lights();
+  scale(1, -1, 1); // Invert the y axis to match traditional 3D coordinate systems
+  drawModel();
+
+  cam.beginHUD();
+  cp5.draw();
+  cam.endHUD();
+
+  if (export) {
+    exportModel();
+    export = false;
+  }
+}
+
+void controlEvent(ControlEvent event) {
+  // 检查事件是否来自特定控件，例如滑块
+  if (event.isFrom(cp5.getController("heightFactor"))) {
+    heightFactor = event.getController().getValue();
+    generateModel();
+  } else if (event.isFrom(cp5.getController("radius"))) {
+    radius = event.getController().getValue();
+    generateModel();
+  } else if (event.isFrom(cp5.getController("radialSections"))) {
+    radialSections = (int) event.getController().getValue();
+    generateModel();
+  } else if (event.isFrom(cp5.getController("heightSections"))) {
+    heightSections = (int) event.getController().getValue();
+    generateModel();
+  } else if (event.isFrom(cp5.getController("twistAmount"))) {
+    twistAmount = event.getController().getValue();
+    generateModel();
+  }
+}
+
+// 控制UI不受PeasyCam影响
+void mouseDragged() {
+  if (!cp5.isMouseOver()) {
+    cam.rotateX((mouseY-pmouseY) * 0.01);
+    cam.rotateY((mouseX-pmouseX) * 0.01);
+  }
+}
+
+void mouseWheel(MouseEvent event) {
+  if (!cp5.isMouseOver()) {
+    float zoomAmount = event.getCount() * 20; // 调整缩放的敏感度
+    cam.setDistance(cam.getDistance() - zoomAmount);
+  }
+}
+
+
+void drawModel() {
+  stroke(0);
+  fill(200, 200, 250, 150);
+  beginShape(TRIANGLES);
+  for (int[] face : faces) {
+    for (int i = 0; i < 3; i++) {
+      PVector v = vertices.get(face[i]);
+      vertex(v.x, v.y, v.z);
+    }
+  }
+  endShape();
+}
+
+void generateModel() {
+  vertices.clear();
+  faces.clear();
+  
+  for (int i = 0; i <= heightSections; i++) {
+    for (int j = 0; j < radialSections; j++) {
+      float x = radius * cos(j * TWO_PI / radialSections);
+      float z = radius * sin(j * TWO_PI / radialSections);
+      float y = heightFactor * (i / (float) heightSections) - heightFactor/2;
+      
+      // Apply twist
+      float twistedX = x * cos(twistAmount * (i / (float) heightSections));
+      float twistedZ = z * sin(twistAmount * (i / (float) heightSections));
+      
+      vertices.add(new PVector(twistedX, y, twistedZ));
+    }
+  }
+  
+
+// Generate faces
+  for (int i = 0; i < heightSections; i++) {
+    for (int j = 0; j < radialSections; j++) {
+      int nextJ = (j + 1) % radialSections;
+      int p1 = i * radialSections + j;
+      int p2 = i * radialSections + nextJ;
+      int p3 = (i + 1) * radialSections + j;
+      int p4 = (i + 1) * radialSections + nextJ;
+  
+    // Create two faces (triangles) for each rectangle in the grid
+
+      // Create two faces (triangles) for each rectangle in the grid
+      faces.add(new int[]{p1, p2, p3});
+      faces.add(new int[]{p3, p2, p4});
+    }
+  }
+}
+
+// 修改UI部分代码
+// Corrected createUI function
+void createUI() {
+  cp5 = new ControlP5(this);
+
+  cp5.addSlider("heightFactor")
+     .setPosition(20, 40)
+     .setWidth(200)
+     .setRange(100, 400)
+     .setValue(200)
+     .onChange(new CallbackListener() {
+      public void controlEvent(CallbackEvent event) {
+        heightFactor = event.getController().getValue();
+        generateModel();
+      }
+    });
+
+  cp5.addSlider("radius")
+     .setPosition(20, 80)
+     .setWidth(200)
+     .setRange(50, 200)
+     .setValue(100)
+     .onChange(new CallbackListener() {
+       public void controlEvent(CallbackEvent event) {
+         radius = event.getController().getValue();
+         generateModel();
+       }
+     });
+
+  cp5.addSlider("radialSections")
+     .setPosition(20, 120)
+     .setWidth(200)
+     .setRange(3, 72)
+     .setValue(36)
+     .onChange(new CallbackListener() {
+       public void controlEvent(CallbackEvent event) {
+         radialSections = (int) event.getController().getValue();
+         generateModel();
+       }
+     });
+
+  cp5.addSlider("heightSections")
+     .setPosition(20, 160)
+     .setWidth(200)
+     .setRange(3, 50)
+     .setValue(10)
+     .onChange(new CallbackListener() {
+       public void controlEvent(CallbackEvent event) {
+         heightSections = (int) event.getController().getValue();
+         generateModel();
+       }
+     });
+
+  cp5.addSlider("twistAmount")
+     .setPosition(20, 200)
+     .setWidth(200)
+     .setRange(0, TWO_PI)
+     .setValue(PI)
+     .onChange(new CallbackListener() {
+       public void controlEvent(CallbackEvent event) {
+         twistAmount = event.getController().getValue();
+         generateModel();
+       }
+     });
+
+  cp5.addButton("exportModel")
+     .setLabel("Export OBJ")
+     .setPosition(20, 240)
+     .setSize(200, 19)
+     .onClick(new CallbackListener() {
+      public void controlEvent(CallbackEvent event) {
+        export = true;
+      }
+    });
+}
+
+void exportModel() {
+  String fileName = "exported_model.obj";
+  PrintWriter output = createWriter(fileName);
+  output.println("# OBJ file format with ext.vertex color extension");
+  output.println("mtllib exported_model.mtl"); // Write material library file
+  output.println("usemtl Material001"); // Define the material to use
+
+  for (PVector v : vertices) {
+    output.println("v " + v.x + " " + v.y + " " + v.z);
+  }
+  
+  for (int[] face : faces) {
+    output.println("f " + (face[0] + 1) + " " + (face[1] + 1) + " " + (face[2] + 1));
+  }
+
+  output.flush(); // Writes the remaining data to the file
+  output.close(); // Finishes the file
+  println("Exported model to " + fileName);
+}
+
+
 
