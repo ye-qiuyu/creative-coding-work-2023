@@ -1,1 +1,92 @@
+import controlP5.*;
+import toxi.geom.*;
+import toxi.geom.mesh2d.*;
+import toxi.processing.*;
 
+ToxiclibsSupport gfx;
+
+ArrayList<MyBoid> myBoids;
+ControlP5 cp5;
+
+float maxspeed = 3.0;
+float maxforce = 0.05;
+float separateIndex = 1.5;
+float alignIndex = 1.0;
+float cohesionIndex = 1.0;
+int boidNum = 100;
+
+void setup() {
+  size(1200, 600);
+  gfx = new ToxiclibsSupport(this);
+
+  cp5 = new ControlP5(this);
+  cp5.addSlider("maxspeed")
+     .setPosition(10, 10)
+     .setRange(0, 10)
+     .setValue(3.0)
+     .setWidth(150);
+
+  cp5.addSlider("maxforce")
+     .setPosition(10, 40)
+     .setRange(0, 2)
+     .setValue(0.05)
+     .setWidth(150);
+
+  cp5.addSlider("separateIndex")
+     .setPosition(10, 70)
+     .setRange(0, 5)
+     .setValue(1.5)
+     .setWidth(150);
+
+  cp5.addSlider("alignIndex")
+     .setPosition(10, 100)
+     .setRange(0, 5)
+     .setValue(1.0)
+     .setWidth(150);
+
+  cp5.addSlider("cohesionIndex")
+     .setPosition(10, 130)
+     .setRange(0, 5)
+     .setValue(1.0)
+     .setWidth(150);
+
+  cp5.addSlider("boidNum")
+     .setPosition(10, 160)
+     .setRange(0, 1000)
+     .setValue(100)
+     .setWidth(150);
+
+  cp5.setAutoDraw(false);
+  
+  reset();
+  smooth();
+}
+
+void reset() {
+  myBoids = new ArrayList<MyBoid>();
+  float ballRnoise = 0;
+  for (int i = 0; i < boidNum; i++) {
+    color cb = color(0, 200, random(255));
+    float ballR = noise(ballRnoise) * 10;
+    MyBoid mboid = new MyBoid(new PVector(random(width), random(height)), ballR, cb);
+    myBoids.add(mboid);
+    ballRnoise += 0.01;
+  }
+}
+
+void draw() {
+  background(0, 0, 150, 5);
+  for (int i = 0; i < myBoids.size(); i++) {
+    MyBoid mb = myBoids.get(i);
+    mb.run(myBoids);
+  }
+
+  checkBoidNum();
+  cp5.draw();
+}
+
+void checkBoidNum() {
+  if (boidNum != myBoids.size()) {
+    reset();
+  }
+}
