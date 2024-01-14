@@ -1,1 +1,110 @@
+import java.util.ArrayList;
+
+int totalNum = 2000;
+int index = 1;
+ArrayList<Agent> agents = new ArrayList<Agent>();
+
+void setup() {
+  size(800, 800);
+  colorMode(HSB, totalNum, 100, 100);
+  initiateCore();
+}
+
+void applyForces(Agent agent, ArrayList<Agent> agents) {
+  PVector separateForce = new PVector(0, 0);
+  PVector cohesionForce = new PVector(0, 0);
+  
+  for (Agent other : agents) {
+    if (agent != other) {
+      float d = PVector.dist(agent.position, other.position);
+      if (d < 25) {
+        PVector diff = PVector.sub(agent.position, other.position);
+        diff.normalize();
+        diff.div(d);
+        separateForce.add(diff);
+        cohesionForce.add(other.position);
+      }
+    }
+  }
+  
+  agent.applyForce(separateForce);
+  agent.applyForce(cohesionForce);
+}
+
+void drawConnections(ArrayList<Agent> agents) {
+  for (Agent a : agents) {
+    for (Agent other : agents) {
+      if (a != other) {
+        float d = PVector.dist(a.position, other.position);
+        if (d < 50) {
+          stroke(a.id, 100, 100, 50);
+          line(a.position.x, a.position.y, other.position.x, other.position.y);
+        }
+      }
+    }
+  }
+}
+
+void draw() {
+  background(0, 0, 0);
+  
+  if (index < totalNum) {
+    if (random(1) > 0.5) {
+      agents.add(new Agent(new PVector(0, random(height)), index));
+    } else {
+      agents.add(new Agent(new PVector(width, random(height)), index));
+    }
+    index++;
+  }
+  
+  for (Agent a : agents) {
+    PVector step = PVector.random2D().mult(4);
+    applyForces(a, agents);
+    a.update(step);
+    a.constrainPosition();
+  }
+  
+  drawConnections(agents);
+  
+  for (Agent a : agents) {
+    fill(a.id, 100, 100);
+    noStroke();
+    ellipse(a.position.x, a.position.y, 5, 5);
+  }
+  
+  fill(0, 0, 100);
+  text(index, 20, 20);
+}
+
+void initiateCore() {
+  agents = new ArrayList<Agent>();
+  agents.add(new Agent(new PVector(width/2, height/2), 0));
+}
+
+class Agent {
+  PVector position;
+  int id;
+  
+  Agent(PVector pos, int _id) {
+    position = pos;
+    id = _id;
+  }
+  
+  void applyForce(PVector force) {
+
+  }
+  
+  void update(PVector step) {
+    position.add(step);
+  }
+  
+  void constrainPosition() {
+    position.x = constrain(position.x, 0, width);
+    position.y = constrain(position.y, 0, height);
+  }
+  
+  float constrain(float n, float low, float high) {
+    return min(max(n, low), high);
+  }
+}
 
