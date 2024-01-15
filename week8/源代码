@@ -1,1 +1,180 @@
+import ddf.minim.*;
+import ddf.minim.analysis.*;
 
+enum GameState {
+    MENU, ELEPHANT_GAME
+}
+
+AudioSample soundEffect;
+GameState currentState = GameState.MENU;
+Button playButton, backButton;
+int starCount = 0; // 星星计数器
+final int maxStars = 100; // 达到通关的星星数量
+float referenceAmplitude = 0.001; // 参考振幅，用于分贝计算
+float minDb = 70; // 最小分贝阈值
+float dbStep = 40; // 每增加10分贝，增加一个星星
+boolean gameFinished = false; // 游戏是否结束的标志
+
+ArrayList<Note> notes; // 存储音符的列表
+PImage bgImage;    // 背景图片
+PImage elephant;   // 大象图片
+PImage note;       // 音符图片
+Minim minim;
+AudioInput input;
+
+void setup() {
+    size(640, 447);
+    playButton = new Button(width / 2 - 100, height / 2, 200, 50, "Play");
+    backButton = new Button(width / 2 - 100, height / 2 + 100, 200, 50, "Back");
+    bgImage = loadImage("BG.png");    // 加载背景图片
+    elephant = loadImage("CH.png");   // 加载大象图片
+    note = loadImage("note1.png");    // 加载音符图片
+    minim = new Minim(this);
+    input = minim.getLineIn(Minim.MONO, 512, 44100, 16);
+    imageMode(CENTER); 
+    notes = new ArrayList<Note>();
+}
+
+void draw() {
+    background(bgImage);
+    if (currentState == GameState.MENU) {
+        playButton.display();
+    } else if (currentState == GameState.ELEPHANT_GAME) {
+        displayElephantGame();
+    }
+}
+
+void displayElephantGame() {
+    for (Note n : notes) {
+        n.update();
+        n.display();
+    }
+    image(elephant, width / 2, height / 2);
+    // 检测声音并生成音符
+    if (frameCount % 15 == 0) { // 每秒检测一次声音
+        float amplitude = input.left.level();
+        if (amplitude > 0) {
+            float db = 20 * log(amplitude / referenceAmplitude);
+            if (db > minDb) {
+                int level = int((db - minDb) / dbStep);
+                int notesCount = level + 1;
+                for (int i = 0; i < notesCount; i++) {
+                    notes.add(new Note(500, 250)); // 将音符的初始位置设置为大象鼻子的位置
+                    starCount++; // 生成音符时增加计分// 音符从顶部随机位置生成
+                }
+            }
+        }
+    }
+
+   
+
+    drawProgressBar(); // 显示进度条
+
+    if (starCount >= maxStars) {
+        gameFinished = true;
+    }
+
+    if (gameFinished) {
+        showCongratulations(); // 显示祝贺信息
+        backButton.display();
+    }
+}
+
+
+//显示进度条
+void drawProgressBar() {
+  float progress = map(starCount, 0, maxStars, 0, width);
+  fill(220, 95, 6); // 橙色填充
+  noStroke();
+  rect(0, 0, progress, 20); // 绘制进度条
+}
+
+void showCongratulations() {
+    textAlign(CENTER, CENTER);
+    textSize(32);
+    text("Congratulations!", width / 2, height / 2);
+}
+
+void mousePressed() {
+    if (currentState == GameState.MENU && playButton.clicked(mouseX, mouseY)) {
+        currentState = GameState.ELEPHANT_GAME;
+        // 重置游戏相关的变量
+        starCount = 0;
+        notes.clear();
+        gameFinished = false;
+    } else if (currentState == GameState.ELEPHANT_GAME && backButton.clicked(mouseX, mouseY)) {
+        currentState = GameState.MENU;
+        // 这里不需要重置游戏变量，因为它们会在再次点击Play时重置
+    }
+}
+
+
+class Button {
+    float x, y, w, h;
+    String label;
+
+    Button(float x, float y, float w, float h, String label) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.label = label;
+    }
+    
+    void display() {
+        fill(200);
+        rect(x, y, w, h);
+        fill(0);
+        textAlign(CENTER, CENTER);
+        text(label, x + w / 2, y + h / 2);
+    }
+
+    boolean clicked(float mx, float my) {
+        return mx > x && mx < x + w && my > y && my < y + h;
+    }
+}
+
+class Note {
+    PVector position; // 音符的位置
+    PVector velocity; // 音符的速度
+    PVector gravity;  // 重力
+    float angle;      // 音符的旋转角度
+    float angularVelocity; // 音符的旋转速度
+    float groundHeight = 17; // 地面的高度，距离窗口底部的像素值
+    
+    Note(float x, float y) {
+        position = new PVector(x, y);
+        velocity = new PVector(random(-5, 3), random(-7, -3)); // 初始速度，向上且稍微有些水平方向的变化
+        gravity = new PVector(0, 0.08); // 重力，向下
+        angle = random(TWO_PI); // 初始角度
+        angularVelocity = random(-0.05, 0.05); // 初始旋转速度
+    }
+
+    void update() {
+        velocity.add(gravity); // 应用重力到速度
+        position.add(velocity); // 更新位置
+        angle += angularVelocity; // 更新角度
+
+        // 边缘碰撞检测和反弹
+        if (position.x < 0 || position.x > width) {
+            velocity.x *= -1;
+            angularVelocity *= -1; // 反转旋转方向
+        }
+        if (position.y < 0 + groundHeight || position.y > height - groundHeight) {
+            velocity.y *= -0.6;
+            position.y = constrain(position.y, 0 + groundHeight, height - groundHeight);
+            angularVelocity *= -1; // 反转旋转方向
+        }
+    }
+        
+       
+
+    void display() {
+        pushMatrix();
+        translate(position.x, position.y);
+        rotate(angle);
+        imageMode(CENTER);
+        image(note, 0, 0);
+        popMatrix();
+    }
+}
